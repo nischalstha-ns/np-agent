@@ -9,10 +9,13 @@
 ///   6. [verify]        — post-check that the result is sane for the call.
 library;
 
-/// What a caller wants a tool to do.
+/// REAL: What a caller wants a tool to do.
 class ToolCall {
+  /// REAL: The tool.
   final String tool;
+  /// REAL: The action.
   final String action;
+  /// REAL: The args.
   final Map<String, dynamic> args;
 
   const ToolCall({
@@ -33,11 +36,14 @@ class ToolCall {
   String toString() => '$tool.$action($args)';
 }
 
+/// REAL: Whether a tool call is allowed, needs approval, or denied.
 enum PermissionKind { allowed, needsApproval, denied }
 
-/// The outcome of [Tool.checkPermission].
+/// REAL: The outcome of [Tool.checkPermission].
 class PermissionDecision {
+  /// REAL: The kind.
   final PermissionKind kind;
+  /// REAL: The reason.
   final String reason;
 
   const PermissionDecision(this.kind, this.reason);
@@ -51,8 +57,11 @@ class PermissionDecision {
   const PermissionDecision.denied([this.reason = 'denied'])
       : kind = PermissionKind.denied;
 
+  /// REAL: Whether allowed.
   bool get isAllowed => kind == PermissionKind.allowed;
+  /// REAL: The needs approval.
   bool get needsApproval => kind == PermissionKind.needsApproval;
+  /// REAL: Whether denied.
   bool get isDenied => kind == PermissionKind.denied;
 
   Map<String, dynamic> toJson() => {'kind': kind.name, 'reason': reason};
@@ -61,11 +70,15 @@ class PermissionDecision {
   String toString() => 'Permission(${kind.name}): $reason';
 }
 
-/// The outcome of [Tool.execute].
+/// REAL: The outcome of [Tool.execute].
 class ToolResult {
+  /// REAL: The success.
   final bool success;
+  /// REAL: The data.
   final dynamic data;
+  /// REAL: The error.
   final String? error;
+  /// REAL: The duration ms.
   final int durationMs;
 
   const ToolResult({
@@ -93,33 +106,33 @@ class ToolResult {
       success ? 'ToolResult(ok, ${durationMs}ms)' : 'ToolResult(fail: $error)';
 }
 
-/// Six-layer tool contract. See library doc comment.
+/// REAL: Six-layer tool contract. See library doc comment.
 abstract class Tool {
-  /// Stable machine name, e.g. 'file'.
+  /// REAL: Stable machine name, e.g. 'file'.
   String get name;
 
-  /// Layer 1: human/LLM-readable description.
+  /// REAL: Layer 1: human/LLM-readable description.
   String get description;
 
-  /// Layer 2: accepted arguments, e.g.
+  /// REAL: Layer 2: accepted arguments, e.g.
   /// `{'action': 'read', 'args': {'path': {'type': 'string', 'required': true}}}`.
   Map<String, dynamic> get inputSchema;
 
-  /// Layer 3: shape of [ToolResult.data] on success.
+  /// REAL: Layer 3: shape of [ToolResult.data] on success.
   Map<String, dynamic> get outputSchema;
 
-  /// Layer 4: the tool's own permission policy for [call].
+  /// REAL: Layer 4: the tool's own permission policy for [call].
   Future<PermissionDecision> checkPermission(ToolCall call);
 
-  /// Layer 5: run the call.
+  /// REAL: Layer 5: run the call.
   Future<ToolResult> execute(ToolCall call);
 
-  /// Layer 6: post-execution sanity check of [result] for [call].
+  /// REAL: Layer 6: post-execution sanity check of [result] for [call].
   /// Returns true when the result looks valid.
   Future<bool> verify(ToolCall call, ToolResult result);
 }
 
-/// Thrown by [ToolRegistry] when dispatching to an unknown tool.
+/// REAL: Thrown by [ToolRegistry] when dispatching to an unknown tool.
 class ToolNotFoundError extends StateError {
   ToolNotFoundError(String name) : super('Unknown tool "$name"');
 }

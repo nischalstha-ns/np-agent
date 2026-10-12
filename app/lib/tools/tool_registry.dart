@@ -1,6 +1,6 @@
 import 'tool.dart';
 
-/// Central registry for all tools: registration, lookup, and
+/// REAL: Central registry for all tools: registration, lookup, and
 /// permission-checked dispatch.
 ///
 /// Dispatch flow: resolve tool -> [Tool.checkPermission] -> (deny/approval
@@ -10,28 +10,32 @@ import 'tool.dart';
 class ToolRegistry {
   final Map<String, Tool> _tools = {};
 
-  /// Register (or replace) a tool by its [Tool.name].
+  /// REAL: Register (or replace) a tool by its [Tool.name].
   void register(Tool tool) {
     _tools[tool.name] = tool;
   }
 
-  /// Look up a tool. Throws [ToolNotFoundError] when missing.
+  /// REAL: Look up a tool. Throws [ToolNotFoundError] when missing.
   Tool get(String name) {
+    /// REAL: The tool.
     final tool = _tools[name];
     if (tool == null) throw ToolNotFoundError(name);
     return tool;
   }
 
-  /// Look up a tool, returning null when missing.
+  /// REAL: Look up a tool, returning null when missing.
   Tool? getOrNull(String name) => _tools[name];
 
+  /// REAL: The contains.
   bool contains(String name) => _tools.containsKey(name);
 
+  /// REAL: Lists.
   List<Tool> list() => List.unmodifiable(_tools.values);
 
+  /// REAL: The names.
   List<String> names() => List.unmodifiable(_tools.keys);
 
-  /// Dispatch [call] through the permission gate, execution, and verification.
+  /// REAL: Dispatch [call] through the permission gate, execution, and verification.
   ///
   /// [permissionOverride] may upgrade a `needsApproval` decision to allowed
   /// (used when the user pre-approved, or for tests). It is never consulted
@@ -40,16 +44,20 @@ class ToolRegistry {
     ToolCall call, {
     Future<PermissionDecision> Function(ToolCall call)? permissionOverride,
   }) async {
+    /// REAL: The sw.
     final sw = Stopwatch()..start();
+    /// REAL: The fail.
     ToolResult fail(String error) {
       sw.stop();
       return ToolResult.fail(error, durationMs: sw.elapsedMilliseconds);
     }
 
+    /// REAL: The tool.
     final tool = getOrNull(call.tool);
     if (tool == null) return fail('Unknown tool "${call.tool}"');
 
     // --- Layer 4: permission gate -----------------------------------------
+    /// REAL: The decision.
     PermissionDecision decision;
     try {
       decision = await tool.checkPermission(call);
@@ -63,6 +71,7 @@ class ToolRegistry {
       if (permissionOverride == null) {
         return fail('Approval required for $call: ${decision.reason}');
       }
+      /// REAL: The override.
       final override = await permissionOverride(call);
       if (override.isDenied || override.needsApproval) {
         return fail(
@@ -71,6 +80,7 @@ class ToolRegistry {
     }
 
     // --- Layer 5: execution -------------------------------------------------
+    /// REAL: The result.
     ToolResult result;
     try {
       result = await tool.execute(call);
@@ -88,6 +98,7 @@ class ToolRegistry {
     // --- Layer 6: verification --------------------------------------------
     if (result.success) {
       try {
+        /// REAL: The valid.
         final valid = await tool.verify(call, result);
         if (!valid) {
           return ToolResult.fail(

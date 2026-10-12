@@ -1,9 +1,9 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 import 'tool.dart';
 
-/// Real local command execution via [Process].
+/// REAL: Real local command execution via [Process].
 ///
 /// Actions:
 /// - `run` {command, args?, workingDirectory?, timeoutSeconds?}
@@ -12,7 +12,7 @@ import 'tool.dart';
 /// The tool's own permission layer denies known-destructive patterns outright
 /// and requires approval for privilege-escalation / system-service commands.
 class TerminalTool extends Tool {
-  /// Patterns that are always denied, no override possible.
+  /// REAL: Patterns that are always denied, no override possible.
   static final List<RegExp> _denied = [
     RegExp(r'\brm\s+(-[a-z]*r[a-z]*\s+)?/\s*(;|&&|\||$)'), // rm -rf /
     RegExp(r'\brm\s+(-[a-z]*r[a-z]*\s+)~/\s*(;|&&|\||$)'), // rm -rf ~/
@@ -27,7 +27,7 @@ class TerminalTool extends Tool {
     RegExp(r'\bformat\s+[a-z]:', caseSensitive: false), // windows format
   ];
 
-  /// Patterns that need explicit user approval.
+  /// REAL: Patterns that need explicit user approval.
   static final List<RegExp> _needsApproval = [
     RegExp(r'^\s*sudo\b'),
     RegExp(r'\bsystemctl\b'),
@@ -37,13 +37,16 @@ class TerminalTool extends Tool {
     RegExp(r'>\s*/dev/sd'),
   ];
 
+  /// REAL: The name.
   @override
   String get name => 'terminal';
 
+  /// REAL: The description.
   @override
   String get description =>
       'Run shell commands locally and capture stdout/stderr/exit code.';
 
+  /// REAL: The input schema.
   @override
   Map<String, dynamic> get inputSchema => {
         'action': {
@@ -61,6 +64,7 @@ class TerminalTool extends Tool {
         'timeoutSeconds': {'type': 'int', 'required': false},
       };
 
+  /// REAL: The output schema.
   @override
   Map<String, dynamic> get outputSchema => {
         'type': 'object',
@@ -72,15 +76,18 @@ class TerminalTool extends Tool {
         },
       };
 
+  /// REAL: Checks permission.
   @override
   Future<PermissionDecision> checkPermission(ToolCall call) async {
     if (call.action != 'run') {
       return PermissionDecision.denied('Unknown terminal action "${call.action}"');
     }
+    /// REAL: The command.
     final command = (call.args['command'] as String? ?? '').trim();
     if (command.isEmpty) {
       return const PermissionDecision.denied('Empty command');
     }
+    /// REAL: The full.
     final full = '$command ${(call.args['args'] as List?)?.join(' ') ?? ''}';
     for (final pattern in _denied) {
       if (pattern.hasMatch(full)) {
@@ -97,23 +104,30 @@ class TerminalTool extends Tool {
     return const PermissionDecision.allowed('command passed safety patterns');
   }
 
+  /// REAL: Executes.
   @override
   Future<ToolResult> execute(ToolCall call) async {
+    /// REAL: The command.
     final command = (call.args['command'] as String? ?? '').trim();
+    /// REAL: The args.
     final args = (call.args['args'] as List?)
             ?.map((e) => e.toString())
             .toList() ??
         const <String>[];
+    /// REAL: The working directory.
     final workingDirectory = call.args['workingDirectory'] as String?;
+    /// REAL: The timeout seconds.
     final timeoutSeconds = (call.args['timeoutSeconds'] as int?) ?? 60;
 
     try {
+      /// REAL: The future.
       final future = Process.run(
         command,
         args,
         workingDirectory: workingDirectory,
         runInShell: true,
       );
+      /// REAL: The pr.
       final ProcessResult pr = await future.timeout(
         Duration(seconds: timeoutSeconds),
         onTimeout: () => throw TimeoutException(
@@ -132,9 +146,11 @@ class TerminalTool extends Tool {
     }
   }
 
+  /// REAL: Verifies.
   @override
   Future<bool> verify(ToolCall call, ToolResult result) async {
     if (!result.success) return true;
+    /// REAL: The data.
     final data = result.data;
     return data is Map &&
         data['exitCode'] is int &&

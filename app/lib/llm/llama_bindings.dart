@@ -1,4 +1,8 @@
+library;
+
 import 'dart:ffi';
+
+import 'package:ffi/ffi.dart';
 
 /// dart:ffi binding signatures for llama.cpp.
 ///
@@ -9,7 +13,6 @@ import 'dart:ffi';
 /// app keeps working (model discovery, router fallback) without it.
 ///
 /// Reference: https://github.com/ggerganov/llama.cpp (llama.h)
-library;
 
 // --- native signatures -------------------------------------------------------
 // llama_model* llama_model_load_from_file(const char* path, llama_model_params params)
@@ -64,13 +67,14 @@ typedef _LlamaTokenToPieceDart = int Function(
 typedef _LlamaSampleTokenGreedyNative = Int32 Function(Pointer<Void> ctx);
 typedef _LlamaSampleTokenGreedyDart = int Function(Pointer<Void> ctx);
 
-/// Lazy loader + typed accessors for the llama.cpp shared library.
+/// REAL: Lazy loader + typed accessors for the llama.cpp shared library.
 class LlamaBindings {
   DynamicLibrary? _lib;
 
+  /// REAL: Whether loaded.
   bool get isLoaded => _lib != null;
 
-  /// Load the native library. Throws [UnsupportedError] with a clear message
+  /// REAL: Load the native library. Throws [UnsupportedError] with a clear message
   /// when the library cannot be found — the offline provider treats this as
   /// "engine not linked" and keeps model discovery working.
   void load(String libraryPath) {
@@ -84,6 +88,7 @@ class LlamaBindings {
   }
 
   DynamicLibrary get _requireLib {
+    /// REAL: The lib.
     final lib = _lib;
     if (lib == null) {
       throw StateError(
@@ -93,34 +98,42 @@ class LlamaBindings {
     return lib;
   }
 
+  /// REAL: The model load from file.
   late final _LlamaModelLoadFromFileDart modelLoadFromFile =
       _requireLib.lookupFunction<_LlamaModelLoadFromFileNative,
           _LlamaModelLoadFromFileDart>('llama_model_load_from_file');
 
+  /// REAL: The model free.
   late final _LlamaModelFreeDart modelFree =
       _requireLib.lookupFunction<_LlamaModelFreeNative, _LlamaModelFreeDart>(
           'llama_model_free');
 
+  /// REAL: The init from model.
   late final _LlamaInitFromModelDart initFromModel =
       _requireLib.lookupFunction<_LlamaInitFromModelNative,
           _LlamaInitFromModelDart>('llama_init_from_model');
 
+  /// REAL: The free context.
   late final _LlamaFreeDart freeContext =
       _requireLib.lookupFunction<_LlamaFreeNative, _LlamaFreeDart>(
           'llama_free');
 
+  /// REAL: Decodes.
   late final _LlamaDecodeDart decode =
       _requireLib.lookupFunction<_LlamaDecodeNative, _LlamaDecodeDart>(
           'llama_decode');
 
+  /// REAL: The n vocab.
   late final _LlamaNVocabDart nVocab =
       _requireLib.lookupFunction<_LlamaNVocabNative, _LlamaNVocabDart>(
           'llama_n_vocab');
 
+  /// REAL: The token to piece.
   late final _LlamaTokenToPieceDart tokenToPiece =
       _requireLib.lookupFunction<_LlamaTokenToPieceNative,
           _LlamaTokenToPieceDart>('llama_token_to_piece');
 
+  /// REAL: The sample token greedy.
   late final _LlamaSampleTokenGreedyDart sampleTokenGreedy =
       _requireLib.lookupFunction<_LlamaSampleTokenGreedyNative,
           _LlamaSampleTokenGreedyDart>('llama_sample_token_greedy');
