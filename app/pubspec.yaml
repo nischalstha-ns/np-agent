@@ -1,0 +1,36 @@
+name: np
+description: NP — hybrid Offline+Online AI Operating System Agent.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.3.3      # on-device SQLite for the memory system
+  path: ^1.9.0
+  http: ^1.2.2         # online LLM provider + HuggingFace client
+  collection: ^1.19.0
+  meta: ^1.15.0
+  crypto: ^3.0.3       # sha256 verification of downloaded models
+  archive: ^3.6.1      # extracting zipped model bundles
+  ffi: ^2.1.3          # llama.cpp native bindings for offline inference
+  path_provider: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # NOTE on models: GGUF model files are NOT bundled as Flutter assets.
+  # They are far too large for APK/IPA asset limits and are instead
+  # discovered at runtime from the on-device model directories
+  # (/models, /gguf, /downloaded_models) by OfflineLlmProvider.
+  # Only small text assets (prompts) live here.
+  assets:
+    - assets/prompts/
