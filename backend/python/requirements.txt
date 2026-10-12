@@ -1,0 +1,8 @@
+# NP agent — Python embedding service dependencies.
+# Runs with stdlib + numpy only. The fastapi/uvicorn lines are an OPTIONAL
+# upgrade path (commented out so offline installs stay hermetic).
+numpy>=1.24
+
+# --- optional: production HTTP server (uncomment to use) ---
+# fastapi>=0.110
+# uvicorn>=0.29

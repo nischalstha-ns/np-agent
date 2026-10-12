@@ -1,0 +1,21 @@
+[package]
+name = "np_llama"
+version = "0.1.0"
+edition = "2021"
+description = "Safe Rust wrapper around llama.cpp for the NP offline inference backend"
+
+[lib]
+name = "np_llama"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+libc = "0.2"
+
+# NOTE: this crate is an INTERFACE SKETCH. It declares the llama.cpp C ABI
+# below and compiles against it, but it does NOT bundle llama.cpp itself.
+# To link, build llama.cpp as a static library and point the linker at it, e.g.:
+#
+#   cd third_party/llama.cpp && cmake -B build -DBUILD_SHARED_LIBS=OFF && cmake --build build
+#   RUSTFLAGS="-L /path/to/llama.cpp/build/src -l static=llama -l static=ggml" cargo build
+#
+# On Android the staticlib is loaded through the Flutter FFI plugin instead.
