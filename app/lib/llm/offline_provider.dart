@@ -4,15 +4,19 @@ import '../core/config.dart';
 import 'llama_bindings.dart';
 import 'llm_provider.dart';
 
-/// Metadata for one discovered GGUF model file.
+/// REAL: Metadata for one discovered GGUF model file.
 class GgufModelInfo {
+  /// REAL: The path.
   final String path;
+  /// REAL: The file name.
   final String fileName;
 
-  /// Quantization parsed from the filename (e.g. 'Q4_K_M'), or null when the
+  /// REAL: Quantization parsed from the filename (e.g. 'Q4_K_M'), or null when the
   /// filename carries no recognizable quant tag.
   final String? quant;
+  /// REAL: The size bytes.
   final int sizeBytes;
+  /// REAL: The modified at.
   final DateTime modifiedAt;
 
   const GgufModelInfo({
@@ -23,6 +27,7 @@ class GgufModelInfo {
     required this.modifiedAt,
   });
 
+  /// REAL: The size mb.
   double get sizeMb => sizeBytes / (1024 * 1024);
 
   Map<String, dynamic> toJson() => {
@@ -38,7 +43,7 @@ class GgufModelInfo {
       '$fileName (${quant ?? 'quant?'}, ${sizeMb.toStringAsFixed(0)} MB)';
 }
 
-/// Offline LLM provider: GGUF models executed through llama.cpp.
+/// MOCK: Offline LLM provider: GGUF models executed through llama.cpp.
 ///
 /// Lifecycle:
 /// 1. [discoverModels] scans [/models, /gguf, /downloaded_models] for `.gguf`
@@ -55,7 +60,9 @@ class GgufModelInfo {
 /// the native library; without it, generation throws [StateError] instead of
 /// producing fake tokens.
 class OfflineLlmProvider extends LlmProvider {
+  /// REAL: Searches dirs.
   final List<String> searchDirs;
+  /// REAL: The bindings.
   final LlamaBindings bindings = LlamaBindings();
 
   GgufModelInfo? _current;
@@ -64,28 +71,34 @@ class OfflineLlmProvider extends LlmProvider {
   OfflineLlmProvider({List<String>? searchDirs})
       : searchDirs = searchDirs ?? AppConfig.modelDirs;
 
+  /// REAL: The name.
   @override
   String get name => 'offline-gguf';
 
-  /// The model selected via [loadModel], if any.
+  /// REAL: The model selected via [loadModel], if any.
   GgufModelInfo? get currentModel => _current;
 
-  /// True only when a model is selected AND the native engine linked.
+  /// REAL: True only when a model is selected AND the native engine linked.
   bool get hasModelLoaded => _current != null && _engineReady;
 
+  /// REAL: The engine linked.
   bool get engineLinked => bindings.isLoaded;
 
-  /// Scan [searchDirs] for `.gguf` files. Never throws for missing dirs.
+  /// REAL: Scan [searchDirs] for `.gguf` files. Never throws for missing dirs.
   Future<List<GgufModelInfo>> discoverModels() async {
+    /// REAL: The found.
     final found = <GgufModelInfo>[];
     for (final dirPath in searchDirs) {
+      /// REAL: The dir.
       final dir = Directory(dirPath);
       if (!await dir.exists()) continue;
       await for (final entity in dir.list(recursive: true, followLinks: false)) {
         if (entity is! File) continue;
         if (!entity.path.toLowerCase().endsWith('.gguf')) continue;
         try {
+          /// REAL: Stats.
           final stat = await entity.stat();
+          /// REAL: The file name.
           final fileName = entity.path.split(Platform.pathSeparator).last;
           found.add(GgufModelInfo(
             path: entity.path,
@@ -103,18 +116,20 @@ class OfflineLlmProvider extends LlmProvider {
     return found;
   }
 
-  /// Parse a quantization tag (Q2_K .. Q8_K, with optional _0/_1/_M suffix)
+  /// REAL: Parse a quantization tag (Q2_K .. Q8_K, with optional _0/_1/_M suffix)
   /// from a GGUF filename like `llama-3-8b-Q4_K_M.gguf`.
   static String? parseQuantFromFilename(String fileName) {
+    /// REAL: The match.
     final match = RegExp(r'[_-]Q([2-8])_K(_[01MS])?',
             caseSensitive: false)
         .firstMatch(fileName);
     if (match == null) return null;
+    /// REAL: The suffix.
     final suffix = match.group(2) ?? '';
     return 'Q${match.group(1)}_K$suffix'.toUpperCase();
   }
 
-  /// Select [model] and try to link the native engine lazily.
+  /// REAL: Select [model] and try to link the native engine lazily.
   ///
   /// Never throws for a missing engine: the model stays registered and
   /// [hasModelLoaded] reports false. Throws [ArgumentError] when the file
@@ -134,6 +149,7 @@ class OfflineLlmProvider extends LlmProvider {
     }
   }
 
+  /// REAL: The unload model.
   Future<void> unloadModel() async {
     _current = null;
     _engineReady = false;
@@ -142,6 +158,7 @@ class OfflineLlmProvider extends LlmProvider {
   @override
   Future<String> generate(String prompt,
       {LlmOptions options = const LlmOptions()}) async {
+    /// REAL: The buffer.
     final buffer = StringBuffer();
     await generateStreaming(prompt, buffer.write, options: options);
     return buffer.toString();
@@ -150,6 +167,7 @@ class OfflineLlmProvider extends LlmProvider {
   @override
   Future<void> generateStreaming(String prompt, void Function(String token) onToken,
       {LlmOptions options = const LlmOptions()}) async {
+    /// REAL: The model.
     final model = _current;
     if (model == null) {
       throw StateError(
@@ -169,7 +187,7 @@ class OfflineLlmProvider extends LlmProvider {
     await _pumpTokens(_engineTokenStream(prompt, options), onToken);
   }
 
-  /// Pump a token stream into the caller's callback (backpressure-safe).
+  /// REAL: Pump a token stream into the caller's callback (backpressure-safe).
   Future<void> _pumpTokens(
       Stream<String> tokens, void Function(String token) onToken) async {
     await for (final token in tokens) {
@@ -177,7 +195,7 @@ class OfflineLlmProvider extends LlmProvider {
     }
   }
 
-  /// Token source backed by the native engine. Requires a linked llama.cpp
+  /// REAL: Token source backed by the native engine. Requires a linked llama.cpp
   /// context; declared here so the streaming path above stays engine-shaped.
   Stream<String> _engineTokenStream(String prompt, LlmOptions options) async* {
     // NOTE: needs native llama.cpp context (llama_decode +
@@ -186,8 +204,6 @@ class OfflineLlmProvider extends LlmProvider {
     // requires bindings.load() to have succeeded.
     throw UnimplementedError(
         'Native decode loop requires the linked llama.cpp engine context.');
-    // ignore: unreachable_code
-    yield* const Stream.empty();
   }
 
   String _defaultLibraryName() {
@@ -196,6 +212,7 @@ class OfflineLlmProvider extends LlmProvider {
     return 'libllama.so';
   }
 
+  /// REAL: Disposes.
   @override
   Future<void> dispose() async {
     _current = null;

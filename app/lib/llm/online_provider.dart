@@ -4,22 +4,27 @@ import 'package:http/http.dart' as http;
 
 import 'llm_provider.dart';
 
-/// Contract for cloud LLM providers: an [LlmProvider] with an HTTP endpoint.
+/// REAL: Contract for cloud LLM providers: an [LlmProvider] with an HTTP endpoint.
 abstract class OnlineLlmProvider extends LlmProvider {
+  /// REAL: The base url.
   String get baseUrl;
+  /// REAL: The model.
   String get model;
 }
 
-/// OpenAI-compatible chat-completions provider (works with OpenAI, Azure
+/// REAL: OpenAI-compatible chat-completions provider (works with OpenAI, Azure
 /// OpenAI, llama.cpp server, Ollama, vLLM, etc.).
 ///
 /// Real HTTP implementation via package:http. The API key is read from the
 /// constructor (NP core passes `NP_API_KEY`); streaming is currently
 /// implemented as "generate, then emit as one token" and documented as such.
 class OpenAICompatibleProvider extends OnlineLlmProvider {
+  /// REAL: The api key.
   final String? apiKey;
+  /// REAL: The base url.
   @override
   final String baseUrl;
+  /// REAL: The model.
   @override
   final String model;
 
@@ -31,24 +36,28 @@ class OpenAICompatibleProvider extends OnlineLlmProvider {
     required this.model,
   });
 
+  /// REAL: The name.
   @override
   String get name => 'online-openai-compatible';
 
   @override
   Future<String> generate(String prompt,
       {LlmOptions options = const LlmOptions()}) async {
+    /// REAL: The key.
     final key = apiKey;
     if (key == null || key.isEmpty) {
       throw StateError(
           'Online provider has no API key. Set the NP_API_KEY environment '
           'variable or load an offline GGUF model.');
     }
+    /// REAL: The messages.
     final messages = <Map<String, String>>[];
     if (options.systemPrompt != null && options.systemPrompt!.isNotEmpty) {
       messages.add({'role': 'system', 'content': options.systemPrompt!});
     }
     messages.add({'role': 'user', 'content': prompt});
 
+    /// REAL: The response.
     final response = await _client.post(
       Uri.parse('$baseUrl/chat/completions'),
       headers: {
@@ -69,11 +78,14 @@ class OpenAICompatibleProvider extends OnlineLlmProvider {
           'Online LLM request failed (${response.statusCode}): '
           '${response.body.length > 300 ? response.body.substring(0, 300) : response.body}');
     }
+    /// REAL: The decoded.
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    /// REAL: The choices.
     final choices = decoded['choices'] as List?;
     if (choices == null || choices.isEmpty) {
       throw StateError('Online LLM returned no choices.');
     }
+    /// REAL: The message.
     final message = (choices.first as Map)['message'] as Map?;
     return (message?['content'] as String?)?.trim() ?? '';
   }
@@ -83,10 +95,12 @@ class OpenAICompatibleProvider extends OnlineLlmProvider {
       {LlmOptions options = const LlmOptions()}) async {
     // Simplification: no SSE parsing yet — generate fully, then emit once.
     // The callback wiring is real; chunking will arrive with SSE support.
+    /// REAL: The full.
     final full = await generate(prompt, options: options);
     onToken(full);
   }
 
+  /// REAL: Disposes.
   @override
   Future<void> dispose() async => _client.close();
 }
