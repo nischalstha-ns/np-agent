@@ -1,9 +1,8 @@
-import '../memory/memory_store.dart';
 import '../memory/retrieval.dart';
 import '../memory/short_term.dart';
 import 'agent.dart';
 
-/// Memory stage of the pipeline.
+/// REAL: Memory stage of the pipeline.
 ///
 /// On every run it:
 /// 1. records the current turn into short-term memory (working context), and
@@ -11,11 +10,14 @@ import 'agent.dart';
 ///    semantic layers via [RetrievalService] (embedding cosine + recency +
 ///    importance scoring).
 class MemoryAgent extends Agent {
+  /// REAL: The retrieval.
   final RetrievalService retrieval;
+  /// REAL: The short term.
   final ShortTermMemory shortTerm;
 
   MemoryAgent({required this.retrieval, required this.shortTerm});
 
+  /// REAL: The name.
   @override
   String get name => 'memory';
 
@@ -24,7 +26,7 @@ class MemoryAgent extends Agent {
       'Retrieves relevant memories (embedding + recency + importance) and '
       'records the current turn into short-term memory.';
 
-  /// Recall memories for [ctx]. Pure retrieval used directly by the pipeline.
+  /// REAL: Recall memories for [ctx]. Pure retrieval used directly by the pipeline.
   Future<List<ScoredMemory>> recall(TaskContext ctx, {int topK = 5}) {
     return retrieval.retrieve(
       ctx.input,
@@ -33,8 +35,10 @@ class MemoryAgent extends Agent {
     );
   }
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
       // 1. Record this turn as working context (best effort; never fatal).
@@ -44,6 +48,7 @@ class MemoryAgent extends Agent {
         // short-term write failure must not break the pipeline
       }
       // 2. Retrieve relevant memories.
+      /// REAL: The memories.
       final memories = await recall(ctx);
       return AgentResult.ok(
         name,

@@ -1,12 +1,18 @@
 import 'agent.dart';
 
-/// One step of a [Plan]: a single tool invocation (or a direct answer).
+/// REAL: One step of a [Plan]: a single tool invocation (or a direct answer).
 class PlanStep {
+  /// REAL: The id.
   final String id;
+  /// REAL: The description.
   final String description;
+  /// REAL: The tool.
   final String tool; // tool name in the registry, or 'none' for direct answer
+  /// REAL: The action.
   final String action;
+  /// REAL: The args.
   final Map<String, dynamic> args;
+  /// REAL: The depends on.
   final List<String> dependsOn;
 
   const PlanStep({
@@ -37,10 +43,13 @@ class PlanStep {
       );
 }
 
-/// An ordered list of steps that fulfills the user's request.
+/// REAL: An ordered list of steps that fulfills the user's request.
 class Plan {
+  /// REAL: The goal.
   final String goal;
+  /// REAL: The steps.
   final List<PlanStep> steps;
+  /// REAL: The rationale.
   final String rationale;
 
   const Plan({
@@ -56,13 +65,14 @@ class Plan {
       };
 }
 
-/// Turns a raw user request into an ordered [Plan] of tool calls.
+/// REAL: Turns a raw user request into an ordered [Plan] of tool calls.
 ///
 /// This is a real, rule-based intent parser (deliberately simplified):
 /// it recognizes file, terminal, browser, code-analysis, and web-search
 /// intents via regular expressions. Anything it cannot map becomes a
 /// single `tool: 'none'` step, meaning "answer directly from the model".
 class PlannerAgent extends Agent {
+  /// REAL: The name.
   @override
   String get name => 'planner';
 
@@ -70,10 +80,13 @@ class PlannerAgent extends Agent {
   String describe() =>
       'Turns a user request into an ordered Plan of tool calls.';
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
+      /// REAL: The plan.
       final plan = producePlan(ctx.input);
       return AgentResult.ok(
         name,
@@ -89,18 +102,26 @@ class PlannerAgent extends Agent {
     }
   }
 
-  /// Pure planning logic — also used directly by the pipeline.
+  /// REAL: Pure planning logic — also used directly by the pipeline.
   Plan producePlan(String input) {
+    /// REAL: The text.
     final text = input.trim();
     if (text.isEmpty) {
       throw ArgumentError('Cannot plan for empty input');
     }
-    final lower = text.toLowerCase();
+    /// REAL: The steps.
     final steps = <PlanStep>[];
+    // Intent keywords match case-insensitively, but paths/commands are
+    // captured from the original-case [text] so e.g. /Tmp/Dir keeps working.
+    /// REAL: Case-insensitive intent regex.
+    RegExp rx(String pattern) => RegExp(pattern, caseSensitive: false);
+    /// REAL: The n.
     var n = 0;
     String nextId() => 's${++n}';
 
+    /// REAL: Adds file step.
     void addFileStep(RegExpMatch m, String action, String description) {
+      /// REAL: The path.
       final path = m.group(1)!.trim();
       steps.add(PlanStep(
         id: nextId(),
@@ -112,15 +133,17 @@ class PlannerAgent extends Agent {
     }
 
     // --- file intents -------------------------------------------------------
+    /// REAL: Reads match.
     final readMatch =
-        RegExp(r'\bread\s+(?:the\s+)?file\s+["\u201c]?([^\s"\u201d]+)').firstMatch(lower);
+        rx(r'\bread\s+(?:the\s+)?file\s+["\u201c]?([^\s"\u201d]+)').firstMatch(text);
     if (readMatch != null) {
       addFileStep(readMatch, 'read', 'Read file ${readMatch.group(1)}');
     }
 
-    final listMatch = RegExp(
+    /// REAL: Lists match.
+    final listMatch = rx(
             r'\blist\s+(?:files\s+)?in\s+["\u201c]?([^\s"\u201d]+)')
-        .firstMatch(lower);
+        .firstMatch(text);
     if (listMatch != null) {
       steps.add(PlanStep(
         id: nextId(),
@@ -131,9 +154,10 @@ class PlannerAgent extends Agent {
       ));
     }
 
-    final writeMatch = RegExp(
+    /// REAL: Writes match.
+    final writeMatch = rx(
             r'\bwrite\s+(?:the\s+)?(?:file\s+)?["\u201c]?([^\s"\u201d]+\.\w+)')
-        .firstMatch(lower);
+        .firstMatch(text);
     if (writeMatch != null) {
       steps.add(PlanStep(
         id: nextId(),
@@ -149,17 +173,19 @@ class PlannerAgent extends Agent {
       ));
     }
 
+    /// REAL: Deletes match.
     final deleteMatch =
-        RegExp(r'\bdelete\s+(?:the\s+)?file\s+["\u201c]?([^\s"\u201d]+)')
-            .firstMatch(lower);
+        rx(r'\bdelete\s+(?:the\s+)?file\s+["\u201c]?([^\s"\u201d]+)')
+            .firstMatch(text);
     if (deleteMatch != null) {
       addFileStep(deleteMatch, 'delete', 'Delete file ${deleteMatch.group(1)}');
     }
 
     // --- terminal intents ---------------------------------------------------
-    final runMatch = RegExp(r'\b(?:run|execute)\s+(?:command\s+)?["\u201c]?(.+)')
-        .firstMatch(lower);
-    if (runMatch != null && !lower.contains('routine')) {
+    /// REAL: Runs match.
+    final runMatch = rx(r'\b(?:run|execute)\s+(?:command\s+)?["\u201c]?(.+)')
+        .firstMatch(text);
+    if (runMatch != null && !text.toLowerCase().contains('routine')) {
       steps.add(PlanStep(
         id: nextId(),
         description: 'Run command: ${runMatch.group(1)}',
@@ -170,7 +196,8 @@ class PlannerAgent extends Agent {
     }
 
     // --- browser intents ----------------------------------------------------
-    final urlMatch = RegExp(r'\bopen\s+(https?://[^\s"\u201d]+)').firstMatch(lower);
+    /// REAL: The url match.
+    final urlMatch = rx(r'\bopen\s+(https?://[^\s"\u201d]+)').firstMatch(text);
     if (urlMatch != null) {
       steps.add(PlanStep(
         id: nextId(),
@@ -181,10 +208,12 @@ class PlannerAgent extends Agent {
       ));
     }
 
+    /// REAL: Searches match.
     final searchMatch =
-        RegExp(r'\bsearch(?:\s+the\s+web)?\s+for\s+["\u201c]?(.+)')
-            .firstMatch(lower);
+        rx(r'\bsearch(?:\s+the\s+web)?\s+for\s+["\u201c]?(.+)')
+            .firstMatch(text);
     if (searchMatch != null) {
+      /// REAL: The query.
       final query = searchMatch.group(1)!.trim().replaceAll(RegExp(r'["\u201d]+$'), '');
       steps.add(PlanStep(
         id: nextId(),
@@ -199,9 +228,10 @@ class PlannerAgent extends Agent {
     }
 
     // --- code intents -------------------------------------------------------
+    /// REAL: Analyzes match.
     final analyzeMatch =
-        RegExp(r'\banalyze\s+(?:the\s+)?(?:code\s+)?["\u201c]?([^\s"\u201d]+\.dart)')
-            .firstMatch(lower);
+        rx(r'\banalyze\s+(?:the\s+)?(?:code\s+)?["\u201c]?([^\s"\u201d]+\.dart)')
+            .firstMatch(text);
     if (analyzeMatch != null) {
       steps.add(PlanStep(
         id: nextId(),

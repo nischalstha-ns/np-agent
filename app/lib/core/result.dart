@@ -1,4 +1,4 @@
-/// Uniform success/failure carrier used across NP core.
+/// REAL: Uniform success/failure carrier used across NP core.
 ///
 /// Every fallible operation in the agent pipeline returns [Result] instead of
 /// throwing for *expected* failures (bad input, missing tool, denied
@@ -6,15 +6,18 @@
 sealed class Result<T> {
   const Result();
 
+  /// REAL: Whether ok.
   bool get isOk => this is Ok<T>;
+  /// REAL: Whether err.
   bool get isErr => this is Err<T>;
 
-  /// Returns the value, or throws the wrapped [NpError].
+  /// REAL: Returns the value, or throws the wrapped [NpError].
   T unwrap() => switch (this) {
         Ok<T>(:final value) => value,
         Err<T>(:final error) => throw error,
       };
 
+  /// REAL: The unwrap or.
   T unwrapOr(T fallback) => switch (this) {
         Ok<T>(:final value) => value,
         Err<T>() => fallback,
@@ -26,7 +29,9 @@ sealed class Result<T> {
       };
 }
 
+/// REAL: Ok.
 final class Ok<T> extends Result<T> {
+  /// REAL: The value.
   final T value;
   const Ok(this.value);
 
@@ -34,7 +39,9 @@ final class Ok<T> extends Result<T> {
   String toString() => 'Ok($value)';
 }
 
+/// REAL: Err.
 final class Err<T> extends Result<T> {
+  /// REAL: The error.
   final NpError error;
   const Err(this.error);
 
@@ -42,10 +49,13 @@ final class Err<T> extends Result<T> {
   String toString() => 'Err($error)';
 }
 
-/// Structured error for the NP agent.
+/// REAL: Structured error for the NP agent.
 class NpError implements Exception {
+  /// REAL: The code.
   final String code;
+  /// REAL: The message.
   final String message;
+  /// REAL: The cause.
   final Object? cause;
 
   const NpError(this.code, this.message, [this.cause]);

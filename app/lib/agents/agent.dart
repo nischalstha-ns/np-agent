@@ -1,10 +1,12 @@
-/// Base types for every NP agent.
+/// REAL: Base types for every NP agent.
 ///
 /// An [Agent] is a named, describable unit of work that consumes a
 /// [TaskContext] and produces an [AgentResult]. The [pipeline] chains agents
 /// together; each agent owns exactly one stage of reasoning.
 class ChatMessage {
+  /// REAL: The role.
   final String role; // 'user' | 'assistant' | 'system'
+  /// REAL: The content.
   final String content;
 
   const ChatMessage(this.role, this.content);
@@ -17,12 +19,17 @@ class ChatMessage {
       );
 }
 
-/// Everything an agent needs to know about the current unit of work.
+/// REAL: Everything an agent needs to know about the current unit of work.
 class TaskContext {
+  /// REAL: The task id.
   final String taskId;
+  /// REAL: The input.
   final String input;
+  /// REAL: The session id.
   final String sessionId;
+  /// REAL: The history.
   final List<ChatMessage> history;
+  /// REAL: The metadata.
   final Map<String, dynamic> metadata;
 
   const TaskContext({
@@ -46,13 +53,19 @@ class TaskContext {
       );
 }
 
-/// The outcome of a single agent execution.
+/// REAL: The outcome of a single agent execution.
 class AgentResult {
+  /// REAL: The agent name.
   final String agentName;
+  /// REAL: The success.
   final bool success;
+  /// REAL: The output.
   final Map<String, dynamic> output;
+  /// REAL: The error.
   final String? error;
+  /// REAL: The started at.
   final DateTime startedAt;
+  /// REAL: The finished at.
   final DateTime finishedAt;
 
   const AgentResult({
@@ -64,6 +77,7 @@ class AgentResult {
     required this.finishedAt,
   });
 
+  /// REAL: The duration ms.
   int get durationMs => finishedAt.difference(startedAt).inMilliseconds;
 
   factory AgentResult.ok(
@@ -103,15 +117,15 @@ class AgentResult {
       };
 }
 
-/// Base class for all NP agents.
+/// REAL: Base class for all NP agents.
 abstract class Agent {
-  /// Stable machine name, e.g. 'planner'.
+  /// REAL: Stable machine name, e.g. 'planner'.
   String get name;
 
-  /// One-line human description of what this agent does.
+  /// REAL: One-line human description of what this agent does.
   String describe();
 
-  /// Run the agent against [ctx]. Implementations must never throw for
+  /// REAL: Run the agent against [ctx]. Implementations must never throw for
   /// expected failures — return `AgentResult.fail(...)` instead.
   Future<AgentResult> execute(TaskContext ctx);
 }

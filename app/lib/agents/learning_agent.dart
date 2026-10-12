@@ -6,7 +6,7 @@ import 'planner_agent.dart';
 import 'tool_agent.dart';
 import 'verification_agent.dart';
 
-/// Learning stage of the pipeline.
+/// REAL: Learning stage of the pipeline.
 ///
 /// Real logic:
 /// - persists every run's stage outputs into `task_results`,
@@ -15,13 +15,15 @@ import 'verification_agent.dart';
 /// - promotes a repeated failure signature (>= 3 similar failures) into a
 ///   `failure_rules` entry so future runs can warn before repeating it.
 class LearningAgent extends Agent {
+  /// REAL: Stores.
   final MemoryStore store;
 
-  /// How many similar failures trigger a learned rule.
+  /// REAL: How many similar failures trigger a learned rule.
   final int ruleThreshold;
 
   LearningAgent({required this.store, this.ruleThreshold = 3});
 
+  /// REAL: The name.
   @override
   String get name => 'learning';
 
@@ -30,13 +32,13 @@ class LearningAgent extends Agent {
       'Writes task results and failure records to memory, and promotes '
       'repeated failures into learned failure rules.';
 
-  /// Record one stage's output for [taskId].
+  /// REAL: Record one stage's output for [taskId].
   Future<void> recordTaskResult(
       String taskId, String stage, Map<String, dynamic> output) {
     return store.addTaskResult(taskId, stage, jsonEncode(output));
   }
 
-  /// Record a failure; promote to a failure rule when the same signature
+  /// REAL: Record a failure; promote to a failure rule when the same signature
   /// has been seen [ruleThreshold] times or more.
   Future<void> recordFailure(
     String taskId,
@@ -45,7 +47,9 @@ class LearningAgent extends Agent {
     String? context,
   ) async {
     await store.recordFailure(taskId, stage, error, context);
+    /// REAL: The signature.
     final signature = _signature(error);
+    /// REAL: Counts.
     final count = await store.countSimilarFailures(signature);
     if (count >= ruleThreshold) {
       await store.upsertFailureRule(
@@ -57,7 +61,7 @@ class LearningAgent extends Agent {
     }
   }
 
-  /// Full learning pass after a pipeline run. Returns a short lesson string
+  /// REAL: Full learning pass after a pipeline run. Returns a short lesson string
   /// that the response stage can quote.
   Future<String> learnFromRun({
     required String taskId,
@@ -85,7 +89,9 @@ class LearningAgent extends Agent {
       await recordFailure(taskId, 'verification', issue, null);
     }
 
+    /// REAL: The rules.
     final rules = await store.listFailureRules();
+    /// REAL: The lesson.
     final lesson = verification.passed
         ? 'Run succeeded: ${verification.succeeded}/${verification.total} steps verified.'
         : 'Run partially failed: ${verification.succeeded}/${verification.total} steps verified. '
@@ -95,20 +101,26 @@ class LearningAgent extends Agent {
         : '$lesson Learned rules on file: ${rules.length}.';
   }
 
-  /// Short stable signature used to group similar failures.
+  /// REAL: Short stable signature used to group similar failures.
   String _signature(String error) {
+    /// REAL: The single line.
     final singleLine = error.replaceAll(RegExp(r'\s+'), ' ').trim();
     return singleLine.length > 120
         ? singleLine.substring(0, 120)
         : singleLine;
   }
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
+      /// REAL: The task id.
       final taskId = ctx.taskId;
+      /// REAL: Runs.
       final stage = ctx.metadata['stage'] as String? ?? 'adhoc';
+      /// REAL: The output.
       final output =
           Map<String, dynamic>.from(ctx.metadata['output'] as Map? ?? {});
       await recordTaskResult(taskId, stage, output);
