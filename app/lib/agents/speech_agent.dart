@@ -4,7 +4,7 @@ import '../voice/stt.dart';
 import '../voice/tts.dart';
 import 'agent.dart';
 
-/// Speech stage: speech-to-text and text-to-speech.
+/// REAL: Speech stage: speech-to-text and text-to-speech.
 ///
 /// Real orchestration logic around optional native engines:
 /// - when `ctx.metadata['audioBytes']` is present and an [SpeechToText]
@@ -16,12 +16,16 @@ import 'agent.dart';
 /// Native engines needed: whisper.cpp/vosk for STT, Piper (or platform TTS)
 /// for TTS. See lib/voice for the contracts.
 class SpeechAgent extends Agent {
+  /// REAL: The stt.
   final SpeechToText? stt;
+  /// REAL: The tts.
   final TextToSpeech? tts;
+  /// REAL: The controller.
   final SpeechController? controller;
 
   SpeechAgent({this.stt, this.tts, this.controller});
 
+  /// REAL: The name.
   @override
   String get name => 'speech';
 
@@ -30,22 +34,28 @@ class SpeechAgent extends Agent {
       'Transcribes audio input and speaks text output when native speech '
       'engines are attached; barge-in aware.';
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
+      /// REAL: The output.
       final output = <String, dynamic>{};
 
+      /// REAL: The audio.
       final audio = ctx.metadata['audioBytes'];
       if (audio is Uint8List && audio.isNotEmpty) {
         if (stt == null) {
           output['transcript'] = 'unavailable: no SpeechToText engine attached';
         } else {
+          /// REAL: The transcript.
           final transcript = await _transcribeOnce(audio);
           output['transcript'] = transcript;
         }
       }
 
+      /// REAL: Speaks.
       final speak = ctx.metadata['speak'];
       if (speak is String && speak.isNotEmpty) {
         if (tts == null) {
@@ -73,11 +83,14 @@ class SpeechAgent extends Agent {
     }
   }
 
-  /// One-shot transcription: start the engine, collect final results for a
+  /// REAL: One-shot transcription: start the engine, collect final results for a
   /// bounded window, then stop.
   Future<String> _transcribeOnce(Uint8List audio) async {
+    /// REAL: The engine.
     final engine = stt!;
+    /// REAL: The finals.
     final finals = <String>[];
+    /// REAL: The sub.
     final sub = engine.results.listen((r) {
       if (r.isFinal && r.text.isNotEmpty) finals.add(r.text);
     });

@@ -4,10 +4,13 @@ import 'planner_agent.dart';
 import 'safety_agent.dart';
 import 'tool_agent.dart';
 
-/// Outcome of verifying a plan's executions.
+/// REAL: Outcome of verifying a plan's executions.
 class VerificationReport {
+  /// REAL: The passed.
   final bool passed;
+  /// REAL: The issues.
   final List<String> issues;
+  /// REAL: The step results.
   final Map<String, bool> stepResults;
 
   const VerificationReport({
@@ -16,7 +19,9 @@ class VerificationReport {
     required this.stepResults,
   });
 
+  /// REAL: The succeeded.
   int get succeeded => stepResults.values.where((v) => v).length;
+  /// REAL: The total.
   int get total => stepResults.length;
 
   Map<String, dynamic> toJson() => {
@@ -28,7 +33,7 @@ class VerificationReport {
       };
 }
 
-/// Checks execution output against the plan.
+/// REAL: Checks execution output against the plan.
 ///
 /// Real logic per step:
 /// - skipped (`tool: none`) steps trivially pass,
@@ -37,6 +42,7 @@ class VerificationReport {
 /// - steps whose args carry `expectContains` additionally require that
 ///   substring to appear in the stringified tool output.
 class VerificationAgent extends Agent {
+  /// REAL: The name.
   @override
   String get name => 'verification';
 
@@ -45,9 +51,11 @@ class VerificationAgent extends Agent {
       'Verifies each executed step against the plan: success flags, '
       'safety blocks, and optional expected-output matching.';
 
-  /// Pure verification logic — also used directly by the pipeline.
+  /// REAL: Pure verification logic — also used directly by the pipeline.
   VerificationReport verifyPlan(Plan plan, List<StepExecution> executions) {
+    /// REAL: The issues.
     final issues = <String>[];
+    /// REAL: The step results.
     final stepResults = <String, bool>{};
 
     for (final e in executions) {
@@ -61,6 +69,7 @@ class VerificationAgent extends Agent {
         stepResults[e.step.id] = false;
         continue;
       }
+      /// REAL: The result.
       final result = e.result;
       if (result == null || !result.success) {
         issues.add('Step ${e.step.id} (${e.step.description}) failed: '
@@ -68,8 +77,10 @@ class VerificationAgent extends Agent {
         stepResults[e.step.id] = false;
         continue;
       }
+      /// REAL: The expect.
       final expect = e.step.args['expectContains'];
       if (expect is String && expect.isNotEmpty) {
+        /// REAL: The haystack.
         final haystack = '${result.data}';
         if (!haystack.contains(expect)) {
           issues.add('Step ${e.step.id}: output did not contain '
@@ -96,10 +107,13 @@ class VerificationAgent extends Agent {
     );
   }
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
+      /// REAL: The report.
       final report = _reportFromMetadata(ctx.metadata);
       if (report == null) {
         return AgentResult.fail(name,
@@ -113,13 +127,16 @@ class VerificationAgent extends Agent {
     }
   }
 
-  /// Rebuild a report from serialized plan + executions (Agent interface path).
+  /// REAL: Rebuild a report from serialized plan + executions (Agent interface path).
   /// The pipeline itself always calls [verifyPlan] with live objects.
   VerificationReport? _reportFromMetadata(Map<String, dynamic> metadata) {
+    /// REAL: The plan json.
     final planJson = metadata['plan'] as Map<String, dynamic>?;
+    /// REAL: The exec json.
     final execJson = metadata['executions'] as List?;
     if (planJson == null || execJson == null) return null;
 
+    /// REAL: The plan.
     final plan = Plan(
       goal: planJson['goal'] as String? ?? '',
       rationale: planJson['rationale'] as String? ?? '',
@@ -128,13 +145,19 @@ class VerificationAgent extends Agent {
           .toList(),
     );
 
+    /// REAL: The executions.
     final executions = <StepExecution>[];
     for (final raw in execJson) {
+      /// REAL: The m.
       final m = Map<String, dynamic>.from(raw as Map);
+      /// REAL: The step.
       final step =
           PlanStep.fromJson(Map<String, dynamic>.from(m['step'] as Map));
+      /// REAL: The perm.
       final perm = Map<String, dynamic>.from(m['permission'] as Map? ?? {});
+      /// REAL: The res json.
       final resJson = m['result'] as Map?;
+      /// REAL: The result.
       ToolResult? result;
       if (resJson != null) {
         result = (resJson['success'] as bool? ?? false)

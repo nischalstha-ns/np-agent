@@ -2,10 +2,13 @@ import '../tools/tool.dart';
 import '../tools/tool_registry.dart';
 import 'agent.dart';
 
-/// Outcome of the safety gate.
+/// REAL: Outcome of the safety gate.
 class SafetyDecision {
+  /// REAL: The allowed.
   final bool allowed;
+  /// REAL: The requires approval.
   final bool requiresApproval;
+  /// REAL: The reason.
   final String reason;
 
   const SafetyDecision({
@@ -37,7 +40,9 @@ class SafetyDecision {
       'Safety(allowed=$allowed, approval=$requiresApproval): $reason';
 }
 
+/// REAL: Permission Decision X.
 extension PermissionDecisionX on PermissionDecision {
+  /// REAL: The to safety decision.
   SafetyDecision toSafetyDecision() {
     switch (kind) {
       case PermissionKind.allowed:
@@ -50,7 +55,7 @@ extension PermissionDecisionX on PermissionDecision {
   }
 }
 
-/// Permission gate consulted by the [ToolAgent] before every tool execution.
+/// REAL: Permission gate consulted by the [ToolAgent] before every tool execution.
 ///
 /// Layered policy:
 /// 1. Unknown tool -> denied.
@@ -58,17 +63,19 @@ extension PermissionDecisionX on PermissionDecision {
 ///    pseudo-tool is always fine).
 /// 3. Otherwise delegate to the tool's own [Tool.checkPermission].
 class SafetyAgent extends Agent {
+  /// REAL: The registry.
   final ToolRegistry registry;
 
-  /// Tool names that always require explicit user approval regardless of
+  /// REAL: Tool names that always require explicit user approval regardless of
   /// what the tool itself says.
   static const Set<String> alwaysApprove = {'automation'};
 
-  /// Tool names that are hard-denied at the gate.
+  /// REAL: Tool names that are hard-denied at the gate.
   static const Set<String> hardDenied = {};
 
   SafetyAgent(this.registry);
 
+  /// REAL: The name.
   @override
   String get name => 'safety';
 
@@ -77,11 +84,12 @@ class SafetyAgent extends Agent {
       'Permission gate: approves, escalates, or denies every tool call '
       'before it executes.';
 
-  /// The actual gate used by the pipeline (not just the Agent interface).
+  /// REAL: The actual gate used by the pipeline (not just the Agent interface).
   Future<SafetyDecision> check(ToolCall call) async {
     if (call.tool == 'none') {
       return const SafetyDecision.allowed('no tool invocation');
     }
+    /// REAL: The tool.
     final tool = registry.getOrNull(call.tool);
     if (tool == null) {
       return SafetyDecision.denied('Unknown tool "${call.tool}"');
@@ -89,6 +97,7 @@ class SafetyAgent extends Agent {
     if (hardDenied.contains(call.tool)) {
       return SafetyDecision.denied('Tool "${call.tool}" is disabled by policy');
     }
+    /// REAL: The decision.
     final decision = await tool.checkPermission(call);
     if (decision.isDenied) return decision.toSafetyDecision();
     if (alwaysApprove.contains(call.tool)) {
@@ -98,9 +107,12 @@ class SafetyAgent extends Agent {
     return decision.toSafetyDecision();
   }
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
+    /// REAL: The call json.
     final callJson = ctx.metadata['toolCall'] as Map<String, dynamic>?;
     if (callJson == null) {
       return AgentResult.ok(
@@ -115,6 +127,7 @@ class SafetyAgent extends Agent {
         DateTime.now(),
       );
     }
+    /// REAL: The decision.
     final decision = await check(ToolCall.fromJson(callJson));
     return AgentResult.ok(
         name, {'decision': decision.toJson()}, started, DateTime.now());

@@ -5,11 +5,15 @@ import 'agent.dart';
 import 'planner_agent.dart';
 import 'safety_agent.dart';
 
-/// A planned step paired with its tool call and safety decision.
+/// REAL: A planned step paired with its tool call and safety decision.
 class PlannedCall {
+  /// REAL: The step.
   final PlanStep step;
+  /// REAL: The call.
   final ToolCall? call; // null when step.tool == 'none'
+  /// REAL: The decision.
   final SafetyDecision decision;
+  /// REAL: The auto approve.
   final bool autoApprove;
 
   const PlannedCall({
@@ -19,7 +23,7 @@ class PlannedCall {
     this.autoApprove = false,
   });
 
-  /// True when this call may proceed to execution.
+  /// REAL: True when this call may proceed to execution.
   bool get mayExecute =>
       call != null &&
       decision.allowed &&
@@ -33,12 +37,17 @@ class PlannedCall {
       };
 }
 
-/// The outcome of attempting one planned step.
+/// REAL: The outcome of attempting one planned step.
 class StepExecution {
+  /// REAL: The step.
   final PlanStep step;
+  /// REAL: The permission.
   final SafetyDecision permission;
+  /// REAL: The result.
   final ToolResult? result;
+  /// REAL: The blocked.
   final bool blocked;
+  /// REAL: The skipped.
   final bool skipped; // step.tool == 'none'
 
   const StepExecution({
@@ -58,13 +67,16 @@ class StepExecution {
       };
 }
 
-/// Selects tools for each plan step (via the safety gate) and executes them.
+/// REAL: Selects tools for each plan step (via the safety gate) and executes them.
 ///
 /// Selection and execution are separate so the pipeline can time, verify,
 /// and learn from each phase independently.
 class ToolAgent extends Agent {
+  /// REAL: The registry.
   final ToolRegistry registry;
+  /// REAL: The safety.
   final SafetyAgent safety;
+  /// REAL: The usage.
   final ToolUsageMemory? usage;
 
   ToolAgent({
@@ -73,6 +85,7 @@ class ToolAgent extends Agent {
     this.usage,
   });
 
+  /// REAL: The name.
   @override
   String get name => 'tools';
 
@@ -81,10 +94,11 @@ class ToolAgent extends Agent {
       'Selects tools for each plan step through the safety gate and '
       'executes the approved calls via the ToolRegistry.';
 
-  /// Turn each plan step into a [PlannedCall], consulting the safety gate.
+  /// REAL: Turn each plan step into a [PlannedCall], consulting the safety gate.
   /// Pure logic — also used directly by the pipeline.
   Future<List<PlannedCall>> selectTools(Plan plan,
       {bool autoApprove = false}) async {
+    /// REAL: The out.
     final out = <PlannedCall>[];
     for (final step in plan.steps) {
       if (step.tool == 'none') {
@@ -96,8 +110,10 @@ class ToolAgent extends Agent {
         ));
         continue;
       }
+      /// REAL: The call.
       final call =
           ToolCall(tool: step.tool, action: step.action, args: step.args);
+      /// REAL: The decision.
       final decision = await safety.check(call);
       out.add(PlannedCall(
         step: step,
@@ -109,9 +125,10 @@ class ToolAgent extends Agent {
     return out;
   }
 
-  /// Execute the approved calls. Blocked/skipped steps produce a
+  /// REAL: Execute the approved calls. Blocked/skipped steps produce a
   /// [StepExecution] without touching the registry.
   Future<List<StepExecution>> executeCalls(List<PlannedCall> calls) async {
+    /// REAL: The out.
     final out = <StepExecution>[];
     for (final planned in calls) {
       if (planned.call == null) {
@@ -133,6 +150,7 @@ class ToolAgent extends Agent {
         ));
         continue;
       }
+      /// REAL: The result.
       final result = await registry.dispatch(planned.call!);
       // Record usage for the learning stage / dashboards (best effort).
       try {
@@ -154,20 +172,24 @@ class ToolAgent extends Agent {
     return out;
   }
 
-  /// Convenience: select + execute in one go.
+  /// REAL: Convenience: select + execute in one go.
   Future<List<StepExecution>> executePlan(Plan plan,
           {bool autoApprove = false}) async =>
       executeCalls(await selectTools(plan, autoApprove: autoApprove));
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
+      /// REAL: The plan json.
       final planJson = ctx.metadata['plan'] as Map<String, dynamic>?;
       if (planJson == null) {
         return AgentResult.fail(
             name, 'No plan in context metadata', started, DateTime.now());
       }
+      /// REAL: The plan.
       final plan = Plan(
         goal: planJson['goal'] as String? ?? '',
         rationale: planJson['rationale'] as String? ?? '',
@@ -175,7 +197,9 @@ class ToolAgent extends Agent {
             .map((s) => PlanStep.fromJson(Map<String, dynamic>.from(s as Map)))
             .toList(),
       );
+      /// REAL: The auto approve.
       final autoApprove = ctx.metadata['autoApprove'] as bool? ?? false;
+      /// REAL: The executions.
       final executions = await executePlan(plan, autoApprove: autoApprove);
       return AgentResult.ok(
         name,
@@ -194,7 +218,9 @@ class ToolAgent extends Agent {
 
   String _summarize(ToolResult result) {
     if (!result.success) return 'FAIL: ${result.error}';
+    /// REAL: The data.
     final data = result.data;
+    /// REAL: The text.
     final text = data == null ? '' : data.toString();
     return text.length > 160 ? '${text.substring(0, 160)}...' : text;
   }

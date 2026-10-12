@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqflite.dart';
 
-/// SQLite-backed memory store (via sqflite).
+import 'db_factory.dart';
+
+/// REAL: SQLite-backed memory store (via sqflite).
 ///
 /// Tables:
 /// - `memory_items(id, layer, key, content, embedding BLOB, created_at,
@@ -25,9 +27,15 @@ class MemoryStore {
 
   MemoryStore._(this._db);
 
-  /// Open (creating if needed) the NP database.
+  /// REAL: Open (creating if needed) the NP database.
+  ///
+  /// Registers the platform database factory first (Flutter plugin, or a
+  /// clear error on pure-Dart runs without mocks).
   static Future<MemoryStore> open({String? dbPath}) async {
+    ensureDatabaseFactory();
+    /// REAL: The path.
     final path = dbPath ?? p.join(await getDatabasesPath(), 'np_agent.db');
+    /// REAL: The db.
     final db = await openDatabase(
       path,
       version: 1,
@@ -119,6 +127,7 @@ class MemoryStore {
     return MemoryStore._(db);
   }
 
+  /// REAL: Closes.
   Future<void> close() => _db.close();
 
   static int _now() => DateTime.now().millisecondsSinceEpoch;
@@ -126,14 +135,16 @@ class MemoryStore {
   // ---------------------------------------------------------------- memory
   // items
 
-  /// Insert or replace a memory item (upsert on UNIQUE(layer, key)).
+  /// REAL: Insert or replace a memory item (upsert on UNIQUE(layer, key)).
   Future<int> saveMemoryItem({
     required String layer,
     required String key,
     required String content,
     Uint8List? embedding,
+    /// REAL: The importance.
     double importance = 0.5,
   }) async {
+    /// REAL: The now.
     final now = _now();
     return _db.insert(
       'memory_items',
@@ -150,14 +161,18 @@ class MemoryStore {
     );
   }
 
-  /// Query memory items, optionally filtered to one layer or several.
+  /// REAL: Query memory items, optionally filtered to one layer or several.
   Future<List<Map<String, Object?>>> getMemoryItems({
     String? layer,
     List<String>? layers,
+    /// REAL: The limit.
     int limit = 200,
+    /// REAL: The order by recency.
     bool orderByRecency = false,
   }) async {
+    /// REAL: The where.
     String? where;
+    /// REAL: The where args.
     List<Object?>? whereArgs;
     if (layer != null) {
       where = 'layer = ?';
@@ -175,7 +190,9 @@ class MemoryStore {
     );
   }
 
+  /// REAL: Returns the memory item.
   Future<Map<String, Object?>?> getMemoryItem(String layer, String key) async {
+    /// REAL: The rows.
     final rows = await _db.query(
       'memory_items',
       where: 'layer = ? AND key = ?',
@@ -202,7 +219,9 @@ class MemoryStore {
   Future<int> deleteMemoryItem(int id) =>
       _db.delete('memory_items', where: 'id = ?', whereArgs: [id]);
 
+  /// REAL: Counts memory items.
   Future<int> countMemoryItems(String layer) async {
+    /// REAL: The rows.
     final rows = await _db.rawQuery(
         'SELECT COUNT(*) AS c FROM memory_items WHERE layer = ?', [layer]);
     return (rows.first['c'] as int?) ?? 0;
@@ -210,12 +229,15 @@ class MemoryStore {
 
   // ------------------------------------------------------------ user profile
 
+  /// REAL: The profile get.
   Future<String?> profileGet(String key) async {
+    /// REAL: The rows.
     final rows = await _db.query('user_profile',
         where: 'key = ?', whereArgs: [key], limit: 1);
     return rows.isEmpty ? null : rows.first['value'] as String?;
   }
 
+  /// REAL: The profile set.
   Future<void> profileSet(String key, String value) async {
     await _db.insert(
       'user_profile',
@@ -224,7 +246,9 @@ class MemoryStore {
     );
   }
 
+  /// REAL: The profile all.
   Future<Map<String, String>> profileAll() async {
+    /// REAL: The rows.
     final rows = await _db.query('user_profile');
     return {
       for (final r in rows) (r['key'] as String): (r['value'] as String)
@@ -252,18 +276,23 @@ class MemoryStore {
   Future<List<Map<String, Object?>>> recentToolUsage({int limit = 50}) =>
       _db.query('tool_usage', orderBy: 'created_at DESC', limit: limit);
 
+  /// REAL: The tool success rate.
   Future<double> toolSuccessRate(String tool) async {
+    /// REAL: The rows.
     final rows = await _db.rawQuery(
         'SELECT COUNT(*) AS total, SUM(success) AS ok FROM tool_usage WHERE tool = ?',
         [tool]);
+    /// REAL: The total.
     final total = (rows.first['total'] as int?) ?? 0;
     if (total == 0) return 1.0;
+    /// REAL: The ok.
     final ok = (rows.first['ok'] as int?) ?? 0;
     return ok / total;
   }
 
   // ---------------------------------------------------------------- projects
 
+  /// REAL: Saves project.
   Future<void> saveProject(String id, String name, String dataJson) async {
     await _db.insert(
       'projects',
@@ -272,7 +301,9 @@ class MemoryStore {
     );
   }
 
+  /// REAL: Returns the project.
   Future<Map<String, Object?>?> getProject(String id) async {
+    /// REAL: The rows.
     final rows =
         await _db.query('projects', where: 'id = ?', whereArgs: [id], limit: 1);
     return rows.isEmpty ? null : rows.first;
@@ -304,7 +335,9 @@ class MemoryStore {
   Future<List<Map<String, Object?>>> listSkills() =>
       _db.query('skills', orderBy: 'updated_at DESC');
 
+  /// REAL: Finds skill by name.
   Future<Map<String, Object?>?> findSkillByName(String name) async {
+    /// REAL: The rows.
     final rows = await _db.query('skills',
         where: 'name = ?', whereArgs: [name], limit: 1);
     return rows.isEmpty ? null : rows.first;
@@ -315,7 +348,9 @@ class MemoryStore {
 
   // ------------------------------------------------------------------- tasks
 
+  /// REAL: Creates task.
   Future<void> createTask(String id, String input) async {
+    /// REAL: The now.
     final now = _now();
     await _db.insert(
       'tasks',
@@ -330,6 +365,7 @@ class MemoryStore {
     );
   }
 
+  /// REAL: Updates task status.
   Future<void> updateTaskStatus(String id, String status) async {
     await _db.update(
       'tasks',
@@ -339,7 +375,9 @@ class MemoryStore {
     );
   }
 
+  /// REAL: Returns the task.
   Future<Map<String, Object?>?> getTask(String id) async {
+    /// REAL: The rows.
     final rows =
         await _db.query('tasks', where: 'id = ?', whereArgs: [id], limit: 1);
     return rows.isEmpty ? null : rows.first;
@@ -379,8 +417,9 @@ class MemoryStore {
   Future<List<Map<String, Object?>>> listFailures({int limit = 50}) =>
       _db.query('failures', orderBy: 'created_at DESC', limit: limit);
 
-  /// How many recorded failures start with [errorSignature].
+  /// REAL: How many recorded failures start with [errorSignature].
   Future<int> countSimilarFailures(String errorSignature) async {
+    /// REAL: The rows.
     final rows = await _db.rawQuery(
         'SELECT COUNT(*) AS c FROM failures WHERE error LIKE ?',
         ['$errorSignature%']);

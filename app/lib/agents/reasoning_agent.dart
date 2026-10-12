@@ -1,7 +1,7 @@
 import 'agent.dart';
 import 'planner_agent.dart';
 
-/// Refines a raw [Plan]: dependency ordering, deduplication, and per-step
+/// REAL: Refines a raw [Plan]: dependency ordering, deduplication, and per-step
 /// rationale.
 ///
 /// Real logic:
@@ -11,6 +11,7 @@ import 'planner_agent.dart';
 /// - annotates each step with a one-line rationale in `metadata`-style
 ///   output so later stages can explain themselves.
 class ReasoningAgent extends Agent {
+  /// REAL: The name.
   @override
   String get name => 'reasoning';
 
@@ -19,16 +20,21 @@ class ReasoningAgent extends Agent {
       'Refines the plan: orders steps by dependencies, removes duplicates, '
       'and attaches per-step rationale.';
 
+  /// REAL: Executes.
   @override
   Future<AgentResult> execute(TaskContext ctx) async {
+    /// REAL: The started.
     final started = DateTime.now();
     try {
+      /// REAL: The plan json.
       final planJson = ctx.metadata['plan'] as Map<String, dynamic>?;
       if (planJson == null) {
         return AgentResult.fail(
             name, 'No plan in context metadata', started, DateTime.now());
       }
+      /// REAL: The plan.
       final plan = _planFromJson(planJson);
+      /// REAL: The refined.
       final refined = refine(plan);
       return AgentResult.ok(
         name,
@@ -45,14 +51,18 @@ class ReasoningAgent extends Agent {
     }
   }
 
-  /// Pure refinement logic — also used directly by the pipeline.
+  /// REAL: Pure refinement logic — also used directly by the pipeline.
   Plan refine(Plan plan) {
+    /// REAL: The notes.
     final notes = <String>[];
 
     // 1. Deduplicate exact repeats (same tool/action/args), keep first.
+    /// REAL: The seen.
     final seen = <String>{};
+    /// REAL: The deduped.
     final deduped = <PlanStep>[];
     for (final step in plan.steps) {
+      /// REAL: The key.
       final key = '${step.tool}|${step.action}|${_argsKey(step.args)}';
       if (seen.add(key)) {
         deduped.add(step);
@@ -62,12 +72,16 @@ class ReasoningAgent extends Agent {
     }
 
     // 2. Topological order honoring dependsOn (Kahn's algorithm, stable).
+    /// REAL: The ordered.
     final ordered = _topoSort(deduped, notes);
 
     // 3. Attach rationale: describe why each step exists and its position.
+    /// REAL: The annotated.
     final annotated = <PlanStep>[];
     for (var i = 0; i < ordered.length; i++) {
+      /// REAL: The s.
       final s = ordered[i];
+      /// REAL: The rationale.
       final rationale = s.tool == 'none'
           ? 'No tool needed; answer from model knowledge.'
           : 'Step ${i + 1}/${ordered.length}: ${s.tool}.${s.action} '
@@ -93,13 +107,17 @@ class ReasoningAgent extends Agent {
   }
 
   String _argsKey(Map<String, dynamic> args) {
+    /// REAL: The keys.
     final keys = args.keys.toList()..sort();
     return keys.map((k) => '$k=${args[k]}').join('&');
   }
 
   List<PlanStep> _topoSort(List<PlanStep> steps, List<String> notes) {
+    /// REAL: The by id.
     final byId = {for (final s in steps) s.id: s};
+    /// REAL: The indegree.
     final indegree = <String, int>{};
+    /// REAL: The outgoing.
     final outgoing = <String, List<String>>{};
     for (final s in steps) {
       indegree[s.id] = 0;
@@ -116,14 +134,18 @@ class ReasoningAgent extends Agent {
       }
     }
     // Stable: always pick the earliest-planned available step.
+    /// REAL: The order.
     final order = {for (var i = 0; i < steps.length; i++) steps[i].id: i};
+    /// REAL: The ready.
     final ready = steps
         .where((s) => indegree[s.id] == 0)
         .map((s) => s.id)
         .toList()
       ..sort((a, b) => order[a]!.compareTo(order[b]!));
+    /// REAL: The result.
     final result = <PlanStep>[];
     while (ready.isNotEmpty) {
+      /// REAL: The id.
       final id = ready.removeAt(0);
       result.add(byId[id]!);
       for (final next in outgoing[id]!) {
@@ -136,6 +158,7 @@ class ReasoningAgent extends Agent {
     }
     if (result.length < steps.length) {
       // Cycle: append the leftovers in original order, deterministically.
+      /// REAL: The missing.
       final missing = steps.where((s) => !result.contains(s)).toList();
       notes.add(
           'Dependency cycle detected among ${missing.map((s) => s.id).join(', ')}; '
