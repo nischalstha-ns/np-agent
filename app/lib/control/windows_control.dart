@@ -3,33 +3,39 @@ import 'dart:typed_data';
 
 import 'desktop_control.dart';
 
-/// Windows implementation of [DesktopControl].
+/// MOCK: Windows implementation of [DesktopControl].
 ///
 /// All actions require a native plugin (SendInput / UI Automation / DXGI
 /// capture). Each method throws [UnimplementedError] until one is wired.
 class WindowsControl extends DesktopControl {
+  /// REAL: The platform name.
   @override
   String get platformName => 'windows';
 
   @override
   Future<Point<int>> mousePosition() =>
-      throw _native('mousePosition');
+      throw nativeError('mousePosition');
+
+  /// REAL: Moves mouse.
+  @override
+  Future<void> moveMouse(int x, int y) => throw nativeError('moveMouse');
 
   @override
-  Future<void> moveMouse(int x, int y) => throw _native('moveMouse');
+  Future<void> click({String button = 'left'}) => throw nativeError('click');
 
+  /// REAL: The type text.
   @override
-  Future<void> click({String button = 'left'}) => throw _native('click');
+  Future<void> typeText(String text) => throw nativeError('typeText');
 
+  /// REAL: The press key.
   @override
-  Future<void> typeText(String text) => throw _native('typeText');
+  Future<void> pressKey(String key) => throw nativeError('pressKey');
 
+  /// REAL: The hotkey.
   @override
-  Future<void> pressKey(String key) => throw _native('pressKey');
+  Future<void> hotkey(List<String> keys) => throw nativeError('hotkey');
 
+  /// REAL: Captures screen.
   @override
-  Future<void> hotkey(List<String> keys) => throw _native('hotkey');
-
-  @override
-  Future<Uint8List> captureScreen() => throw _native('captureScreen');
+  Future<Uint8List> captureScreen() => throw nativeError('captureScreen');
 }
