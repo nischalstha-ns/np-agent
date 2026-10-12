@@ -94,3 +94,78 @@ before implementation where flagged:
     async approvals (e.g. phone confirmation) are out of scope.
 12. **Audit log retention 180 days**, then pruned — a product decision, not a
     legal one; adjust per jurisdiction before v1.0.
+
+## 4. Implementation status — what is REAL vs MOCK (2026-10-12)
+
+The scaffold was hardened so that everything below actually runs. Honest
+accounting, per the `REAL:`/`MOCK:` doc-comment convention now enforced on
+every public API in `app/lib`:
+
+### REAL (pure-Dart, works today in `dart run` and in Flutter)
+- **All 16 tools** implement the 6-layer contract with real logic:
+  `file` (dart:io + path-traversal guard confined to allowed roots, copy/move
+  included), `terminal` (real `Process.run` + timeout + working dir; denies
+  `rm -rf /`, `mkfs`, fork bombs…), `code` (real `dart analyze`/`dart format`
+  subprocesses + heuristic analysis + regex symbols), `browser` (real HTTP via
+  `package:http`; `page` extracts title/text/links), `research` (real
+  DuckDuckGo-HTML + Wikipedia-API multi-source search with graceful offline
+  fallback), `database` (read-only wrapper over the app's `MemoryStore`),
+  `task` (CRUD over the `tasks` table), `calendar`/`email` (local JSON stores
+  under `~/.np`; email "send" only queues to a local outbox — no SMTP),
+  `pdf` (pure-Dart BT/ET + Tj/TJ text extraction), `document` (real
+  .txt/.md/.json/.csv read/write), `image`/`video`/`audio` (real file-size and
+  PNG/JPEG header probing), `automation` (delegates to `AutomationAgent`,
+  every step re-passes the safety gate), `memory` (meta-tool over the store).
+- **Memory**: `MemoryStore` (sqflite) plus `InMemoryMemoryStore`
+  (Maps/Lists, full API parity) for pure-Dart runs and tests.
+- **LLM routing**: real `OfflineLlmProvider` (GGUF discovery + load) when a
+  `.gguf` file is on disk, else configured online provider, else
+  `MockStreamingProvider` (word-by-word streaming, intent-based replies).
+- **Method-channel contracts** (`lib/native/channels.dart`): one clean
+  interface per native capability (microphone, STT, TTS, wake-word,
+  OS control, llama.cpp) with channel names + method shapes; real
+  `MethodChannel` transport in `method_channel_transport.dart`
+  (Flutter builds only).
+- **Pure-Dart PNG synthesis** for mock screenshots (stored-block DEFLATE +
+  Adler-32/CRC-32, no zlib dependency).
+
+### MOCK (simulated; clearly labeled, never mistaken for real)
+- Microphone capture, whisper.cpp/Vosk STT, Piper TTS, wake-word engine,
+  WinAPI/X11/Cocoa/Android desktop control, llama.cpp inference — each has a
+  `Mock*` implementation (`lib/native/mock_channels.dart`, `lib/voice/*_mock.dart`,
+  `lib/vision/*_mock.dart`, `lib/control/mock_desktop.dart`) wired by
+  `NpCore.initialize(useMocks: true)` (the default).
+- `MockOcr`/`MockScreenUnderstanding` return canned results marked simulated.
+- Media *transforms* (resize/convert/transcode/synthesize) fail honestly with
+  "transform requires native codec" unless a `MediaEngineChannel` is attached
+  (the mock engine copies + sidecars instead of real pixel work).
+- `Null*` fallbacks remain for unattached engines (they report unavailability
+  instead of hallucinating).
+
+### Still missing (not started)
+- Real native plugins (whisper.cpp, Piper, openWakeWord, WinAPI/X11/CGEvent/
+  Accessibility bridges, llama.cpp shared library build).
+- Cloud calendar/email accounts (local JSON stores only), SMTP sending.
+- Real image/video/audio generation or transcoding codecs.
+- Encrypted/exotic PDFs (best-effort text extraction only).
+
+### Platform support (updated 2026-10-12)
+- **Target platforms: Windows, Linux, Android, macOS** (all `dart:io` platforms).
+  `flutter analyze` is clean and `flutter test` passes 162/162 on these.
+- **Web is NOT a target platform.** `flutter build web` fails because the
+  agent is inherently an OS-control agent: `dart:io` (processes, filesystem,
+  sockets) and `dart:ffi` (llama.cpp) do not exist on web. Making the tools
+  web-safe would mean stubbing the very capabilities that define the product,
+  so this is an explicit non-goal. The Flutter UI itself (`lib/ui`) is written
+  web-clean (conditional imports where `dart:io` was needed).
+- **UI status**: the premium Material 3 dark-glassmorphism shell IS built
+  (`lib/ui/`: chat with streaming reveal, floating bubble, voice overlay,
+  5-tab dashboard, model manager). `main.dart` launches it; `--cli` keeps the
+  console entry point.
+
+### Retired assumptions
+- Assumption 5 (llama.cpp C API stability) still holds for the FFI typedefs,
+  but inference now has a defined mock fallback instead of a hard error.
+- The design doc's tool schemas (`03-tools.md` §3) describe *intent*; the
+  shipped tools use action-based schemas documented in code — see the
+  implementation-status table added to `03-tools.md` §3.

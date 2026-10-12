@@ -81,6 +81,38 @@ Permission tiers: **Open** (runs freely) · **Confirm** (one-tap consent for
 noteworthy ops) · **Sensitive** (explicit approval + audit) · **System**
 (reserved for automation_agent internals, user-visible in logs).
 
+### Implementation status (2026-10-12 hardening pass)
+
+Every tool below implements the 6-layer contract for real. Status is
+**REAL** (works in pure Dart today), **REAL*** (real where possible, honest
+limits), or **MOCK-backed** (delegates to a simulated engine by default).
+
+| Tool | Status | Notes |
+|------|--------|-------|
+| `file` | REAL | dart:io read/write/list/stat/mkdir/delete/**copy**/**move**; path-traversal guard confines paths to allowed roots (home, temp, `~/.np`); writes outside roots need approval, deletes outside roots are denied |
+| `terminal` | REAL | Real `Process.run` + timeout + working dir; stdout/stderr/exit code captured; denies `rm -rf /`, `mkfs`, `dd of=`, fork bombs, shutdown/reboot; `sudo`/systemctl need approval |
+| `code` | REAL | Real `dart analyze` + `dart format` subprocesses; heuristic balance/TODO analysis; regex symbol extraction |
+| `browser` | REAL | Real HTTP via `package:http` (`fetch` raw body, `page` extracts title/text/links); `open` launches OS browser (needs approval); non-http(s) denied |
+| `research` | REAL | Real multi-source fetch: DuckDuckGo HTML + Wikipedia API, no key; `offline:true` graceful fallback when unreachable |
+| `database` | REAL | Read-only wrapper over the app's `MemoryStore` (`memory_items`, `tool_usage`) |
+| `task` | REAL | CRUD over the `tasks` table (ids indexed in `~/.np/task_index.json`); delete tombstones via status |
+| `calendar` | REAL | Local JSON store (`~/.np/calendar.json`); list/create/delete; no cloud sync |
+| `email` | REAL* | Local JSON store (`~/.np/email.json`); list/read/delete real; **send only queues to a local outbox — no SMTP**, so mail never leaves the device |
+| `pdf` | REAL* | Pure-Dart BT/ET + `Tj`/`TJ` text extraction (literal/hex/UTF-16BE, escaped parens); page count; best-effort on encrypted/exotic PDFs (reported via `extractionNotes`) |
+| `document` | REAL | Real .txt/.md/.json/.csv read/write; CSV parsed to rows; JSON validated |
+| `image` | REAL* | Real probing: file size + PNG/JPEG dimension parsing from headers; transforms need a `MediaEngineChannel` (mock engine attached by default in mock mode) |
+| `video` | REAL* | Real file-size probing; container metadata + transcoding need native FFmpeg (honest error otherwise) |
+| `audio` | REAL* | Real file-size probing; codec metadata + synthesis need a native engine (honest error otherwise) |
+| `automation` | REAL | Delegates to `AutomationAgent`; routines run step-by-step through the safety gate; always needs approval |
+| `memory` | REAL | Meta-tool: save/recall/count memory items, profile get/set, recent tool usage |
+
+Native-only capabilities behind method channels (`lib/native/channels.dart`)
+are MOCK-backed by default: microphone, STT (whisper.cpp/Vosk), TTS (Piper),
+wake-word, WinAPI/X11/Cocoa/Android control, llama.cpp inference.
+`NpCore.initialize(useMocks: true)` (default) wires all mocks plus the
+in-memory store; `useMocks: false` expects real plugins on a device build.
+
+
 ### 3.1 `file` — local filesystem operations
 
 | | |
