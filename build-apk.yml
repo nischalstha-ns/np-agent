@@ -1,0 +1,45 @@
+# Builds the NP native release APK on GitHub Actions and uploads it as an artifact.
+# Dispatch manually: Actions tab → "Build NP APK" → Run workflow.
+
+name: Build NP APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+
+      # The app/ project has no android/ scaffold checked in (pubspec: name np, 0.1.0).
+      # Scaffold it without touching lib/ before building.
+      - name: Scaffold Android platform
+        working-directory: app
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android --org com.punu.np --project-name np .
+          fi
+
+      - name: Install dependencies
+        working-directory: app
+        run: flutter pub get
+
+      # NP uses ffi -> llama.cpp native bindings; needs CMake + NDK (present on ubuntu-latest runners).
+      - name: Build release APK
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: np-android-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
